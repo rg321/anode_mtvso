@@ -46,6 +46,11 @@ parser.add_argument('--batch_size', type = int, default = 20)
 parser.add_argument('--test_batch_size', type = int, default = 10)
 parser.add_argument('--dataset', type = str, choices = ['CIFAR10', 'GalaxyZoo', 'MTVSO'], default = 'CIFAR10')
 
+parser.add_argument('-c', '--checkpoint', default='./checkpoint', type=str, metavar='PATH',
+                    help='path to save checkpoint (default: checkpoint)')
+parser.add_argument('--resume', default='', type=str, metavar='PATH',
+                    help='path to latest checkpoint (default: none)')
+
 args = parser.parse_args()
 if args.network == 'sqnxt':
     from models.sqnxt import SqNxt_23_1x, lr_schedule
@@ -165,6 +170,8 @@ def train(epoch):
                           train_loss / (batch_size * (idx + 1)), correct / total))
         sys.stdout.flush()
     # writer.add_scalar('Train/Accuracy', correct / total, epoch )
+
+    
         
 def test(epoch):
     global best_acc
@@ -192,15 +199,55 @@ def test(epoch):
                           test_loss / (100 * (idx + 1)), correct / total))
         sys.stdout.flush()
     # writer.add_scalar('Test/Accuracy', correct / total, epoch )
+
+    acc = correct / total
+    # writer.add_scalar('Test/Accuracy', acc, epoch )
+    return acc
+
+def adjust_learning_rate(optimizer, lr):
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
+def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoint.pth.tar'):
+    if not os.path.exists(checkpoint):
+        os.makedirs(checkpoint)
+    filepath = os.path.join(checkpoint, filename)
+    torch.save(state, filepath)
+    if is_best:
+        shutil.copyfile(filepath, os.path.join(checkpoint, 'model_best.pth.tar'))
+
+best_acc = 0.0
+
+if args.resume:
+        # Load checkpoint.
+        print('==> Resuming from checkpoint..')
+        assert os.path.isfile(args.resume), 'Error: no checkpoint directory found!'
+        args.checkpoint = os.path.dirname(args.resume)
+        checkpoint = torch.load(args.resume)
+        best_acc = checkpoint['best_acc']
+        start_epoch = checkpoint['epoch']
+        net.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
         
 for _epoch in range(start_epoch, start_epoch + num_epochs):
     start_time = time.time()
     train(_epoch)
     print()
-    test(_epoch)
+    test_acc = test(_epoch)
     print()
     print()
     end_time   = time.time()
     print('Epoch #%d Cost %ds' % (_epoch, end_time - start_time))
+
+    # save model
+    is_best = test_acc > best_acc
+    best_acc = max(test_acc, best_acc)
+    save_checkpoint({
+        'epoch': _epoch + 1,
+        'state_dict': net.state_dict(),
+        'acc': test_acc,
+        'best_acc': best_acc,
+        'optimizer': optimizer.state_dict(),
+    }, is_best, checkpoint=args.checkpoint+'_'+args.method+'_'+args.network)
 print('Best Acc@1: %.4f' % (best_acc * 100))
 # writer.close()
