@@ -138,7 +138,7 @@ if is_use_cuda:
     net.to(device)
     net = nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
 criterion = nn.CrossEntropyLoss()
-optimizer  = optim.SGD(net.parameters(), lr = lr_schedule(lr, epoch), momentum = 0.9, weight_decay = 5e-4)
+optimizer  = optim.SGD(net.parameters(), lr = args.lr, momentum = 0.9, weight_decay = 5e-4)
 
 def train(epoch):
     net.train()
