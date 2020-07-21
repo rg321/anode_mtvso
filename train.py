@@ -39,7 +39,7 @@ from data_helper import get_galaxyZoo_loaders
 parser = argparse.ArgumentParser()
 parser.add_argument('--network', type = str, choices = ['resnet', 'sqnxt'], default = 'sqnxt')
 parser.add_argument('--method', type = str, choices=['Euler', 'RK2', 'RK4'], default = 'Euler')
-parser.add_argument('--num_epochs', type = int, default = 350)
+parser.add_argument('--num_epochs', type = int, default = 50)
 parser.add_argument('--lr', type=float, default = 0.1)
 parser.add_argument('--Nt', type=int, default = 2)
 parser.add_argument('--batch_size', type = int, default = 20)
